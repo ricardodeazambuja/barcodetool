@@ -331,27 +331,27 @@ function handleZXingCode(result) {
     const canvasContext = qrCanvas.getContext('2d');
     canvasContext.strokeStyle = 'red';
     canvasContext.lineWidth = 3;
-
+  
     if (result.resultPoints && result.resultPoints.length > 0) {
-        const points = result.resultPoints;
-        const start = points[0];
-        let minX = start.x;
-        let minY = start.y;
-        let maxX = start.x;
-        let maxY = start.y;
-
-        for (let i = 1; i < points.length; i++) {
-            const point = points[i];
-            minX = Math.min(minX, point.x);
-            minY = Math.min(minY, point.y);
-            maxX = Math.max(maxX, point.x);
-            maxY = Math.max(maxY, point.y);
-        }
-        const width = maxX - minX;
-        const height = maxY - minY;
-        canvasContext.strokeRect(minX, minY, width, height);
+      const points = result.resultPoints;
+      const start = points[0];
+      let minX = start.x;
+      let minY = start.y;
+      let maxX = start.x;
+      let maxY = start.y;
+  
+      for (let i = 1; i < points.length; i++) {
+        const point = points[i];
+        minX = Math.min(minX, point.x);
+        minY = Math.min(minY, point.y);
+        maxX = Math.max(maxX, point.x);
+        maxY = Math.max(maxY, point.y);
+      }
+      const width = maxX - minX;
+      const height = maxY - minY;
+      canvasContext.strokeRect(minX, minY, width, height);
     }
-
+  
     const scanText = result.text;
     const scanFormat = result.getBarcodeFormat ? result.getBarcodeFormat() : result.format;
     const scanTime = new Date().toLocaleTimeString();
@@ -362,17 +362,26 @@ function handleZXingCode(result) {
     // Update the scan result
     const scanResult = document.getElementById('scanResult');
     if (scanResult) {
+      // Check if the scanned text contains a URL
+      const hasURL = detectURLs(scanText);
+      
+      if (hasURL) {
+        // If it contains a URL, convert to clickable link
+        scanResult.innerHTML = `Result: ${textWithLinks(scanText)} (Format: ${scanFormat})`;
+      } else {
+        // Otherwise, show as plain text
         scanResult.textContent = `Result: ${scanText} (Format: ${scanFormat})`;
+      }
     }
     
     // Show the scan result container
     const scanResultContainer = document.getElementById('scanResultContainer');
     if (scanResultContainer) {
-        scanResultContainer.style.display = 'block';
+      scanResultContainer.style.display = 'block';
     }
     
     stopScan();
-}
+  }
 
 function addToScanHistory(text, format, time) {
     // Add to memory
@@ -384,35 +393,44 @@ function addToScanHistory(text, format, time) {
     historyList.innerHTML = '';
     
     scanHistory.forEach((scan, index) => {
-        const item = document.createElement('div');
-        item.className = 'form-group';
-        item.style.padding = '8px';
-        item.style.marginBottom = '8px';
-        
-        const header = document.createElement('div');
-        header.style.display = 'flex';
-        header.style.justifyContent = 'space-between';
-        header.style.marginBottom = '5px';
-        
-        const title = document.createElement('strong');
-        title.textContent = `Scan #${index + 1} (${scan.format})`;
-        
-        const timestamp = document.createElement('span');
-        timestamp.textContent = scan.time;
-        timestamp.style.color = '#777';
-        
-        header.appendChild(title);
-        header.appendChild(timestamp);
-        
-        const content = document.createElement('div');
+      const item = document.createElement('div');
+      item.className = 'form-group';
+      item.style.padding = '8px';
+      item.style.marginBottom = '8px';
+      
+      const header = document.createElement('div');
+      header.style.display = 'flex';
+      header.style.justifyContent = 'space-between';
+      header.style.marginBottom = '5px';
+      
+      const title = document.createElement('strong');
+      title.textContent = `Scan #${index + 1} (${scan.format})`;
+      
+      const timestamp = document.createElement('span');
+      timestamp.textContent = scan.time;
+      timestamp.style.color = '#777';
+      
+      header.appendChild(title);
+      header.appendChild(timestamp);
+      
+      const content = document.createElement('div');
+      
+      // Check if scan text contains a URL
+      const hasURL = detectURLs(scan.text);
+      if (hasURL) {
+        // Use innerHTML to render the link if URL is detected
+        content.innerHTML = textWithLinks(scan.text);
+      } else {
         content.textContent = scan.text;
-        content.style.wordBreak = 'break-all';
-        
-        item.appendChild(header);
-        item.appendChild(content);
-        historyList.appendChild(item);
+      }
+      
+      content.style.wordBreak = 'break-all';
+      
+      item.appendChild(header);
+      item.appendChild(content);
+      historyList.appendChild(item);
     });
-}
+  }
 
 async function ensureFullStop() {
     // If already stopping, wait for it to complete
@@ -466,3 +484,15 @@ function stopScan(callback = null) {
         if (callback) callback();
     }
 }
+
+// Add this new function to detect URLs
+function detectURLs(text) {
+    const urlRegex = /(https?|ftp|data):[^\s"'<>]+/gi;
+    return text.match(urlRegex);
+  }
+  
+  // Convert text to HTML with clickable links
+  function textWithLinks(text) {
+    const urlRegex = /(https?|ftp|data):[^\s"'<>]+/gi;
+    return text.replace(urlRegex, url => `<a href="${url}" target="_blank">${url}</a>`);
+  }
