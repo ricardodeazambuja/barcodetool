@@ -326,32 +326,177 @@ async function startScan() {
     }
 }
 
+// Enhanced URL detection function
+function detectURLs(text) {
+    // Common web protocols
+    const webProtocolsPattern = /(?:https?|ftp|data|file|smb|ldap|mailto|tel|maps|sip|xmpp|skype|spotify|steam):(?:[^\s"'<>]|%[0-9A-Fa-f]{2})+/gi;
+    
+    // MS Office and other application protocols
+    const appProtocolsPattern = /(?:ms-(?:word|excel|powerpoint|visio|access|publisher|outlook|onenote|project)|teams|slack|zoom|msteams|zoommtg|zoomus):(?:[^\s"'<>]|%[0-9A-Fa-f]{2})+/gi;
+    
+    // Windows UNC paths (\\server\share\folder)
+    const uncPathPattern = /\\\\[^\s"'<>\\]+(?:\\[^\s"'<>\\]+)+/gi;
+    
+    // Windows drive paths (C:\folder\file.txt)
+    const drivePathPattern = /[A-Za-z]:\\[^\s"'<>:]+(?:\\[^\s"'<>:]+)+/gi;
+    
+    // Intranet sites with special TLDs
+    const intranetPattern = /(?:[A-Za-z0-9][-A-Za-z0-9.]*\.[A-Za-z0-9][-A-Za-z0-9.]*(\.(?:local|corp|internal|lan|intranet|test|dev|staging|prod))(?:\/[^\s"'<>]*)?)/gi;
+    
+    // IP addresses (optional port)
+    const ipPattern = /\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?::\d{1,5})?\b(?:\/[^\s"'<>]*)?/gi;
+    
+    // Combine all patterns into results
+    const results = [
+        ...(text.match(webProtocolsPattern) || []),
+        ...(text.match(appProtocolsPattern) || []),
+        ...(text.match(uncPathPattern) || []),
+        ...(text.match(drivePathPattern) || []),
+        ...(text.match(intranetPattern) || []),
+        ...(text.match(ipPattern) || [])
+    ];
+    
+    return results.length > 0 ? results : null;
+}
+
+// Convert text to HTML with clickable links
+function textWithLinks(text) {
+    // Make a copy of the original text
+    let linkedText = text;
+    
+    // Standard web protocols (http, https, ftp, etc.)
+    linkedText = linkedText.replace(/((?:https?|ftp|data|ldap|mailto|tel|maps|sip|xmpp|skype|spotify|steam):(?:[^\s"'<>]|%[0-9A-Fa-f]{2})+)/gi, 
+        url => `<a href="${url}" target="_blank" class="detected-link">${url}</a>`);
+    
+    // Application protocols (ms-word:, teams:, etc.)
+    linkedText = linkedText.replace(/((?:ms-(?:word|excel|powerpoint|visio|access|publisher|outlook|onenote|project)|teams|slack|zoom|msteams|zoommtg|zoomus):(?:[^\s"'<>]|%[0-9A-Fa-f]{2})+)/gi, 
+        url => `<a href="${url}" class="detected-link app-protocol">${url}</a>`);
+    
+    // Windows UNC paths
+    linkedText = linkedText.replace(/(\\\\[^\s"'<>\\]+(?:\\[^\s"'<>\\]+)+)/gi, 
+        path => {
+            // Convert backslashes to forward slashes for file: URI
+            const uriPath = path.replace(/\\/g, '/');
+            return `<a href="file:${uriPath}" class="detected-link file-path" title="Network path">${path}</a>`;
+        });
+    
+    // Windows drive paths
+    linkedText = linkedText.replace(/([A-Za-z]:\\[^\s"'<>:]+(?:\\[^\s"'<>:]+)+)/gi, 
+        path => {
+            // Convert backslashes to forward slashes for file: URI
+            const uriPath = path.replace(/\\/g, '/');
+            return `<a href="file:///${uriPath}" class="detected-link file-path" title="File path">${path}</a>`;
+        });
+    
+    // Intranet sites with special TLDs
+    linkedText = linkedText.replace(/([A-Za-z0-9][-A-Za-z0-9.]*\.[A-Za-z0-9][-A-Za-z0-9.]*(\.(?:local|corp|internal|lan|intranet|test|dev|staging|prod))(?:\/[^\s"'<>]*)?)/gi, 
+        url => {
+            // Add https if protocol is missing
+            const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+            return `<a href="${fullUrl}" target="_blank" class="detected-link intranet-link" title="Intranet link">${url}</a>`;
+        });
+    
+    // IP addresses (with optional port)
+    linkedText = linkedText.replace(/\b((?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?::\d{1,5})?)(\b(?:\/[^\s"'<>]*)?)/gi, 
+        (match, ip, path) => {
+            const fullUrl = `http://${match}`;
+            return `<a href="${fullUrl}" target="_blank" class="detected-link ip-link" title="IP address link">${match}</a>`;
+        });
+    
+    return linkedText;
+}
+
+// Add copy button next to links
+function createCopyButton(textToCopy) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'copy-link-btn';
+    button.title = 'Copy to clipboard';
+    button.innerHTML = '📋'; // Clipboard icon
+    button.style.marginLeft = '5px';
+    button.style.fontSize = '0.8em';
+    button.style.padding = '2px 5px';
+    button.style.background = '#f0f0f0';
+    button.style.border = '1px solid #ddd';
+    button.style.borderRadius = '3px';
+    button.style.cursor = 'pointer';
+    
+    button.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        navigator.clipboard.writeText(textToCopy)
+            .then(() => {
+                // Change button text temporarily
+                const originalHTML = button.innerHTML;
+                button.innerHTML = '✓';
+                button.style.background = '#d4edda';
+                button.style.borderColor = '#c3e6cb';
+                
+                // Reset after 1.5 seconds
+                setTimeout(() => {
+                    button.innerHTML = originalHTML;
+                    button.style.background = '#f0f0f0';
+                    button.style.borderColor = '#ddd';
+                }, 1500);
+            })
+            .catch(err => {
+                console.error('Could not copy text: ', err);
+                button.innerHTML = '❌';
+                button.style.background = '#f8d7da';
+                button.style.borderColor = '#f5c6cb';
+                
+                setTimeout(() => {
+                    button.innerHTML = '📋';
+                    button.style.background = '#f0f0f0';
+                    button.style.borderColor = '#ddd';
+                }, 1500);
+            });
+    });
+    
+    return button;
+}
+
+// Process HTML content to add copy buttons after links
+function addCopyButtonsToLinks(containerElement) {
+    // Find all links in the container
+    const links = containerElement.querySelectorAll('a.detected-link');
+    
+    links.forEach(link => {
+        // Avoid adding multiple copy buttons
+        if (!link.nextSibling || !link.nextSibling.classList || !link.nextSibling.classList.contains('copy-link-btn')) {
+            const copyButton = createCopyButton(link.getAttribute('href'));
+            link.parentNode.insertBefore(copyButton, link.nextSibling);
+        }
+    });
+}
+
 function handleZXingCode(result) {
     const qrCanvas = document.getElementById('qrCanvas');
     const canvasContext = qrCanvas.getContext('2d');
     canvasContext.strokeStyle = 'red';
     canvasContext.lineWidth = 3;
-  
+
     if (result.resultPoints && result.resultPoints.length > 0) {
-      const points = result.resultPoints;
-      const start = points[0];
-      let minX = start.x;
-      let minY = start.y;
-      let maxX = start.x;
-      let maxY = start.y;
-  
-      for (let i = 1; i < points.length; i++) {
-        const point = points[i];
-        minX = Math.min(minX, point.x);
-        minY = Math.min(minY, point.y);
-        maxX = Math.max(maxX, point.x);
-        maxY = Math.max(maxY, point.y);
-      }
-      const width = maxX - minX;
-      const height = maxY - minY;
-      canvasContext.strokeRect(minX, minY, width, height);
+        const points = result.resultPoints;
+        const start = points[0];
+        let minX = start.x;
+        let minY = start.y;
+        let maxX = start.x;
+        let maxY = start.y;
+
+        for (let i = 1; i < points.length; i++) {
+            const point = points[i];
+            minX = Math.min(minX, point.x);
+            minY = Math.min(minY, point.y);
+            maxX = Math.max(maxX, point.x);
+            maxY = Math.max(maxY, point.y);
+        }
+        const width = maxX - minX;
+        const height = maxY - minY;
+        canvasContext.strokeRect(minX, minY, width, height);
     }
-  
+
     const scanText = result.text;
     const scanFormat = result.getBarcodeFormat ? result.getBarcodeFormat() : result.format;
     const scanTime = new Date().toLocaleTimeString();
@@ -362,26 +507,74 @@ function handleZXingCode(result) {
     // Update the scan result
     const scanResult = document.getElementById('scanResult');
     if (scanResult) {
-      // Check if the scanned text contains a URL
-      const hasURL = detectURLs(scanText);
-      
-      if (hasURL) {
-        // If it contains a URL, convert to clickable link
-        scanResult.innerHTML = `Result: ${textWithLinks(scanText)} (Format: ${scanFormat})`;
-      } else {
-        // Otherwise, show as plain text
-        scanResult.textContent = `Result: ${scanText} (Format: ${scanFormat})`;
-      }
+        // Check if the scanned text contains a URL or path
+        const hasLinkableContent = detectURLs(scanText);
+        
+        if (hasLinkableContent) {
+            // Create a container to hold both the text and potential copy buttons
+            scanResult.innerHTML = `<div class="result-text">Result: ${textWithLinks(scanText)} (Format: ${scanFormat})</div>`;
+            
+            // Add copy buttons to all detected links
+            addCopyButtonsToLinks(scanResult);
+            
+            // Add CSS for detected links
+            addLinkStyles();
+        } else {
+            // Otherwise, show as plain text
+            scanResult.textContent = `Result: ${scanText} (Format: ${scanFormat})`;
+        }
     }
     
     // Show the scan result container
     const scanResultContainer = document.getElementById('scanResultContainer');
     if (scanResultContainer) {
-      scanResultContainer.style.display = 'block';
+        scanResultContainer.style.display = 'block';
     }
     
     stopScan();
-  }
+}
+
+// Add CSS styles for detected links
+function addLinkStyles() {
+    if (!document.getElementById('link-detection-styles')) {
+        const styleElement = document.createElement('style');
+        styleElement.id = 'link-detection-styles';
+        styleElement.textContent = `
+            .detected-link {
+                color: #0066cc;
+                text-decoration: underline;
+                word-break: break-all;
+            }
+            .detected-link:hover {
+                color: #004080;
+            }
+            .app-protocol {
+                background-color: #e6f7ff;
+                border-radius: 3px;
+                padding: 1px 3px;
+            }
+            .file-path {
+                background-color: #e6ffe6;
+                border-radius: 3px;
+                padding: 1px 3px;
+            }
+            .intranet-link {
+                background-color: #fff0e6;
+                border-radius: 3px;
+                padding: 1px 3px;
+            }
+            .ip-link {
+                background-color: #f0e6ff;
+                border-radius: 3px;
+                padding: 1px 3px;
+            }
+            .copy-link-btn:hover {
+                background-color: #e9ecef !important;
+            }
+        `;
+        document.head.appendChild(styleElement);
+    }
+}
 
 function addToScanHistory(text, format, time) {
     // Add to memory
@@ -390,47 +583,56 @@ function addToScanHistory(text, format, time) {
     
     // Update UI
     const historyList = document.getElementById('historyList');
+    if (!historyList) return;
+    
     historyList.innerHTML = '';
     
     scanHistory.forEach((scan, index) => {
-      const item = document.createElement('div');
-      item.className = 'form-group';
-      item.style.padding = '8px';
-      item.style.marginBottom = '8px';
-      
-      const header = document.createElement('div');
-      header.style.display = 'flex';
-      header.style.justifyContent = 'space-between';
-      header.style.marginBottom = '5px';
-      
-      const title = document.createElement('strong');
-      title.textContent = `Scan #${index + 1} (${scan.format})`;
-      
-      const timestamp = document.createElement('span');
-      timestamp.textContent = scan.time;
-      timestamp.style.color = '#777';
-      
-      header.appendChild(title);
-      header.appendChild(timestamp);
-      
-      const content = document.createElement('div');
-      
-      // Check if scan text contains a URL
-      const hasURL = detectURLs(scan.text);
-      if (hasURL) {
-        // Use innerHTML to render the link if URL is detected
-        content.innerHTML = textWithLinks(scan.text);
-      } else {
-        content.textContent = scan.text;
-      }
-      
-      content.style.wordBreak = 'break-all';
-      
-      item.appendChild(header);
-      item.appendChild(content);
-      historyList.appendChild(item);
+        const item = document.createElement('div');
+        item.className = 'form-group scan-history-item';
+        item.style.padding = '8px';
+        item.style.marginBottom = '8px';
+        item.style.borderBottom = index < scanHistory.length - 1 ? '1px solid #eee' : 'none';
+        
+        const header = document.createElement('div');
+        header.style.display = 'flex';
+        header.style.justifyContent = 'space-between';
+        header.style.marginBottom = '5px';
+        
+        const title = document.createElement('strong');
+        title.textContent = `Scan #${index + 1} (${scan.format})`;
+        
+        const timestamp = document.createElement('span');
+        timestamp.textContent = scan.time;
+        timestamp.style.color = '#777';
+        
+        header.appendChild(title);
+        header.appendChild(timestamp);
+        
+        const content = document.createElement('div');
+        content.className = 'scan-content';
+        content.style.wordBreak = 'break-all';
+        
+        // Check if scan text contains a URL or file path
+        const hasLinkableContent = detectURLs(scan.text);
+        if (hasLinkableContent) {
+            // Use innerHTML to render the links
+            content.innerHTML = textWithLinks(scan.text);
+            
+            // Add copy buttons to links
+            addCopyButtonsToLinks(content);
+        } else {
+            content.textContent = scan.text;
+        }
+        
+        item.appendChild(header);
+        item.appendChild(content);
+        historyList.appendChild(item);
     });
-  }
+    
+    // Add link styles if needed
+    addLinkStyles();
+}
 
 async function ensureFullStop() {
     // If already stopping, wait for it to complete
@@ -484,15 +686,3 @@ function stopScan(callback = null) {
         if (callback) callback();
     }
 }
-
-// Add this new function to detect URLs
-function detectURLs(text) {
-    const urlRegex = /(https?|ftp|data):[^\s"'<>]+/gi;
-    return text.match(urlRegex);
-  }
-  
-  // Convert text to HTML with clickable links
-  function textWithLinks(text) {
-    const urlRegex = /(https?|ftp|data):[^\s"'<>]+/gi;
-    return text.replace(urlRegex, url => `<a href="${url}" target="_blank">${url}</a>`);
-  }
