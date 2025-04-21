@@ -21,12 +21,173 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
+    // Add image upload button and functionality
+    addImageUploadButton();
+    
     // Initialize format selection
     initializeFormatSelection();
     
     // Initialize camera device selection
     initializeCameraSelection();
 });
+
+function addImageUploadButton() {
+    const barcodeScanner = document.getElementById('barcodeScanner');
+    if (!barcodeScanner) {
+        console.error("Element with ID 'barcodeScanner' not found");
+        return;
+    }
+    
+    // Create upload button container
+    const uploadContainer = document.createElement('div');
+    uploadContainer.className = 'form-group';
+    uploadContainer.style.marginTop = '10px';
+    uploadContainer.style.textAlign = 'center';
+    
+    // Create the actual file input
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.id = 'imageUpload';
+    fileInput.accept = 'image/*';
+    fileInput.style.display = 'none'; // Hide the actual file input
+    
+    // Create a nice-looking button that triggers the file input
+    const uploadButton = document.createElement('button');
+    uploadButton.type = 'button';
+    uploadButton.id = 'uploadButton';
+    uploadButton.className = 'btn btn-outline-secondary';
+    uploadButton.innerHTML = '📁 Upload Image';
+    uploadButton.style.width = '100%';
+    uploadButton.style.padding = '10px';
+    uploadButton.style.marginBottom = '10px';
+    
+    // When the button is clicked, trigger the file input
+    uploadButton.addEventListener('click', () => {
+        fileInput.click();
+    });
+    
+    // When a file is selected, process it
+    fileInput.addEventListener('change', handleImageUpload);
+    
+    // Add elements to container
+    uploadContainer.appendChild(fileInput);
+    uploadContainer.appendChild(uploadButton);
+    
+    // Add the upload button right after the scan button
+    const scanButton = document.getElementById('scanButton');
+    if (scanButton && scanButton.parentNode) {
+        scanButton.parentNode.insertBefore(uploadContainer, scanButton.nextSibling);
+    } else {
+        // If scan button not found, add at the beginning of barcode scanner div
+        barcodeScanner.insertBefore(uploadContainer, barcodeScanner.firstChild);
+    }
+}
+
+async function handleImageUpload(event) {
+    // Make sure we're not actively scanning
+    await ensureFullStop();
+    
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    // Clear previous results and errors
+    const resultElement = document.getElementById('scanResult');
+    if (resultElement) resultElement.textContent = '';
+    
+    const errorDisplay = document.getElementById('errorDisplay');
+    if (errorDisplay) errorDisplay.textContent = '';
+    
+    // Hide scan result container initially
+    const scanResultContainer = document.getElementById('scanResultContainer');
+    if (scanResultContainer) scanResultContainer.style.display = 'none';
+    
+    try {
+        // Show loading state
+        const uploadButton = document.getElementById('uploadButton');
+        if (uploadButton) {
+            uploadButton.innerHTML = '⏳ Processing...';
+            uploadButton.disabled = true;
+        }
+        
+        // Create an image element to load the file
+        const img = new Image();
+        
+        // Create a promise to handle image loading
+        const imageLoaded = new Promise((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = () => reject(new Error('Failed to load image'));
+        });
+        
+        // Set the image source to the uploaded file
+        img.src = URL.createObjectURL(file);
+        
+        // Wait for the image to load
+        await imageLoaded;
+        
+        // Get the canvas and draw the image on it
+        const qrCanvas = document.getElementById('qrCanvas');
+        const canvasContext = qrCanvas.getContext('2d');
+        
+        // Set canvas dimensions to match image size
+        qrCanvas.width = img.width;
+        qrCanvas.height = img.height;
+        
+        // Draw image to canvas
+        canvasContext.drawImage(img, 0, 0, img.width, img.height);
+        
+        // Get selected formats
+        const selectedFormats = getSelectedFormats();
+        
+        // Configure the code reader with format hints
+        const hints = new Map();
+        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, selectedFormats);
+        
+        // Reset any existing code reader
+        if (codeReader) {
+            codeReader.reset();
+        }
+        
+        // Create a new code reader with the desired hints
+        codeReader = new ZXing.BrowserMultiFormatReader(hints);
+
+        // Decode the barcode
+        const result = await codeReader.decodeFromImage(img, hints);
+
+        // Handle the successful scan result
+        if (result) {
+            handleZXingCode(result);
+        } else {
+            // This shouldn't happen as an exception would be thrown instead, but just in case
+            throw new Error('No barcode found in image');
+        }
+    } catch (error) {
+        console.error('Error processing image:', error);
+        
+        // Check if it's a "not found" error, which is common and expected
+        if (error instanceof ZXing.NotFoundException) {
+            if (errorDisplay) {
+                errorDisplay.textContent = 'No barcode or QR code found in the image.';
+                errorDisplay.style.display = 'block';
+            }
+        } else {
+            // For other errors
+            if (errorDisplay) {
+                errorDisplay.textContent = `Error processing image: ${error.message}`;
+                errorDisplay.style.display = 'block';
+            }
+        }
+    } finally {
+        // Reset the file input to allow selecting the same file again
+        event.target.value = '';
+        
+        // Reset upload button state
+        const uploadButton = document.getElementById('uploadButton');
+        if (uploadButton) {
+            uploadButton.innerHTML = '📁 Upload Image';
+            uploadButton.disabled = false;
+        }
+    }
+}
 
 function initializeFormatSelection() {
     const formatSelector = document.getElementById('formatSelector');
