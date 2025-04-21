@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Barcode Tool - Generator & Scanner</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#007bff">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
     <script src="https://unpkg.com/bwip-js/dist/bwip-js-min.js"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
     <link rel="stylesheet" href="main.css">
@@ -17,6 +20,7 @@
     <div class="tabs">
         <button class="tab active" onclick="switchTab('generator')">📦 Generate Barcodes</button>
         <button class="tab" onclick="switchTab('scanner')">📱 Scan Barcodes</button>
+        <button class="tab" onclick="switchTab('savedData')">💾 Saved Data</button>
     </div>
     
     <!-- Generator Tab -->
@@ -196,10 +200,30 @@
                 <p class="info-message">No scans yet. Scan a barcode to start.</p>
             </div>
         </div>
+        
+        <div class="form-group" id="saveButtons" style="display: none;">
+            <button id="saveLatestScan" class="secondary-button">💾 Save Latest Scan</button>
+            <button id="saveAllScans" class="secondary-button">💾 Save All Scans</button>
+        </div>
+    </div>
+    
+    <!-- Saved Data Tab -->
+    <div id="savedData" class="tab-content">
+        <h2>💾 Saved Barcode Data</h2>
+        <p>Access your locally saved barcode scans.</p>
+        
+        <div class="form-group">
+            <button id="clearSavedData" class="danger-button">🗑️ Clear All Saved Data</button>
+        </div>
+        
+        <div id="savedDataList" class="form-group">
+            <div class="info-message">No saved data yet. Save some scanned codes first.</div>
+        </div>
     </div>
 
     <script src="generator.js"></script>
     <script src="scanner.js"></script>
+    <script src="storage.js"></script>
     <script>
         // Common functions
         function switchTab(tabId) {
@@ -219,12 +243,36 @@
             if (tabId !== 'scanner' && isScanning) {
                 stopScan();
             }
+            
+            // If switching to saved data tab, refresh saved data display
+            if (tabId === 'savedData') {
+                displaySavedData();
+            }
         }
         
         // Initialize the page
         document.addEventListener('DOMContentLoaded', () => {
             updateForm();
             updateBarcodeOptionsVisibility();
+            
+            // Register service worker for PWA
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/service-worker.js')
+                .then(registration => {
+                    console.log('Service Worker registered with scope:', registration.scope);
+                })
+                .catch(error => {
+                    console.error('Service Worker registration failed:', error);
+                });
+            }
+            
+            // Set up save buttons event listeners
+            document.getElementById('saveLatestScan').addEventListener('click', saveLatestScan);
+            document.getElementById('saveAllScans').addEventListener('click', saveAllScans);
+            document.getElementById('clearSavedData').addEventListener('click', clearSavedData);
+            
+            // Check for existing scans to show/hide save buttons
+            updateSaveButtonsVisibility();
         });
     </script>
 </body>
