@@ -893,15 +893,25 @@ function getBarcodeFormatName(formatNumber) {
 
 // Add helper function to display errors in the UI
 function displayError(message) {
+    console.error(message); // Still log to console
+    
     const errorDisplay = document.getElementById('errorDisplay');
     if (errorDisplay) {
         errorDisplay.textContent = message;
         errorDisplay.style.display = 'block';
+        errorDisplay.style.position = 'static'; // Ensure it's not overlapping
         errorDisplay.style.backgroundColor = '#ffeeee';
         errorDisplay.style.padding = '10px';
         errorDisplay.style.marginTop = '10px';
         errorDisplay.style.border = '1px solid #ffcccc';
         errorDisplay.style.borderRadius = '4px';
+        errorDisplay.style.fontWeight = 'bold';
+        errorDisplay.style.color = '#cc0000';
+        
+        // Ensure error display is visible by scrolling to it
+        setTimeout(() => {
+            errorDisplay.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
     }
 }
 
