@@ -91,15 +91,7 @@ async function handleImageUpload(event) {
     if (!file) return;
     
     // Clear previous results and errors
-    const resultElement = document.getElementById('scanResult');
-    if (resultElement) resultElement.textContent = '';
-    
-    const errorDisplay = document.getElementById('errorDisplay');
-    if (errorDisplay) errorDisplay.textContent = '';
-    
-    // Hide scan result container initially
-    const scanResultContainer = document.getElementById('scanResultContainer');
-    if (scanResultContainer) scanResultContainer.style.display = 'none';
+    clearResults();
     
     try {
         // Show loading state
@@ -128,12 +120,26 @@ async function handleImageUpload(event) {
         const qrCanvas = document.getElementById('qrCanvas');
         const canvasContext = qrCanvas.getContext('2d');
         
-        // Set canvas dimensions to match image size
-        qrCanvas.width = img.width;
-        qrCanvas.height = img.height;
+        // Set canvas dimensions to match image size (with reasonable maximum)
+        const maxDimension = 1200;
+        let width = img.width;
+        let height = img.height;
         
-        // Draw image to canvas
-        canvasContext.drawImage(img, 0, 0, img.width, img.height);
+        if (width > maxDimension || height > maxDimension) {
+            const ratio = Math.min(maxDimension / width, maxDimension / height);
+            width *= ratio;
+            height *= ratio;
+        }
+        
+        qrCanvas.width = width;
+        qrCanvas.height = height;
+        
+        // Clear canvas and draw image
+        canvasContext.clearRect(0, 0, qrCanvas.width, qrCanvas.height);
+        canvasContext.drawImage(img, 0, 0, width, height);
+        
+        // Make the canvas visible
+        qrCanvas.style.display = 'block';
         
         // Get selected formats
         const selectedFormats = getSelectedFormats();
@@ -151,7 +157,7 @@ async function handleImageUpload(event) {
         codeReader = new ZXing.BrowserMultiFormatReader(hints);
 
         // Decode the barcode
-        const result = await codeReader.decodeFromImage(img, hints);
+        const result = await codeReader.decodeFromImage(undefined, hints);
 
         // Handle the successful scan result
         if (result) {
@@ -165,16 +171,10 @@ async function handleImageUpload(event) {
         
         // Check if it's a "not found" error, which is common and expected
         if (error instanceof ZXing.NotFoundException) {
-            if (errorDisplay) {
-                errorDisplay.textContent = 'No barcode or QR code found in the image.';
-                errorDisplay.style.display = 'block';
-            }
+            displayError('No barcode or QR code found in the image.');
         } else {
             // For other errors
-            if (errorDisplay) {
-                errorDisplay.textContent = `Error processing image: ${error.message}`;
-                errorDisplay.style.display = 'block';
-            }
+            displayError(`Error processing image: ${error.message}`);
         }
     } finally {
         // Reset the file input to allow selecting the same file again
