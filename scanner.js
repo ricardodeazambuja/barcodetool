@@ -273,11 +273,16 @@ function initializeCameraSelection() {
     populateCameraDevices();
 }
 
+// Modify the populateCameraDevices function
 async function populateCameraDevices() {
     try {
-        if (!codeReader) {
-            codeReader = new ZXing.BrowserMultiFormatReader();
+        // Reset any existing code reader
+        if (codeReader) {
+            await codeReader.reset();
         }
+        
+        // Create a new code reader
+        codeReader = new ZXing.BrowserMultiFormatReader();
         
         const videoInputDevices = await codeReader.listVideoInputDevices();
         const cameraSelect = document.getElementById('cameraSelect');
@@ -289,8 +294,31 @@ async function populateCameraDevices() {
         }
         
         if (videoInputDevices && videoInputDevices.length > 0) {
-            // Set the default device
-            selectedDeviceId = videoInputDevices[0].deviceId;
+            // Check if we have a saved device ID in localStorage
+            let savedDeviceId = localStorage.getItem('preferredCameraId');
+            
+            // Check if the saved device still exists in available devices
+            let deviceExists = false;
+            if (savedDeviceId) {
+                deviceExists = videoInputDevices.some(device => device.deviceId === savedDeviceId);
+            }
+            
+            // Use saved device if it exists, otherwise use the back camera if possible
+            if (deviceExists) {
+                selectedDeviceId = savedDeviceId;
+            } else {
+                // Try to find back camera (usually containing "back" or "environment")
+                const backCamera = videoInputDevices.find(device => 
+                    device.label.toLowerCase().includes('back') || 
+                    device.label.toLowerCase().includes('environment'));
+                
+                if (backCamera) {
+                    selectedDeviceId = backCamera.deviceId;
+                } else {
+                    // Otherwise use the first device
+                    selectedDeviceId = videoInputDevices[0].deviceId;
+                }
+            }
             
             // Add all devices to the select dropdown
             videoInputDevices.forEach(device => {
@@ -298,6 +326,11 @@ async function populateCameraDevices() {
                 option.value = device.deviceId;
                 option.text = device.label || `Camera ${cameraSelect.options.length + 1}`;
                 cameraSelect.appendChild(option);
+                
+                // Set selected option
+                if (device.deviceId === selectedDeviceId) {
+                    option.selected = true;
+                }
             });
             
             // Show the selection panel regardless of number of cameras
@@ -307,6 +340,8 @@ async function populateCameraDevices() {
             // Add change event listener to update selectedDeviceId
             cameraSelect.addEventListener('change', () => {
                 selectedDeviceId = cameraSelect.value;
+                // Save the selection to localStorage
+                localStorage.setItem('preferredCameraId', selectedDeviceId);
                 console.log(`Selected camera changed to: ${selectedDeviceId}`);
                 
                 // If currently scanning, restart with new device
@@ -321,16 +356,7 @@ async function populateCameraDevices() {
         }
     } catch (err) {
         console.error("Error enumerating video devices:", err);
-        const errorDisplay = document.getElementById('errorDisplay');
-        if (errorDisplay) {
-            errorDisplay.textContent = "Error detecting cameras: " + err.message;
-            errorDisplay.style.position = 'static'; // Make sure error is not overlapping
-            errorDisplay.style.backgroundColor = '#ffeeee';
-            errorDisplay.style.padding = '10px';
-            errorDisplay.style.marginTop = '10px';
-            errorDisplay.style.border = '1px solid #ffcccc';
-            errorDisplay.style.borderRadius = '4px';
-        }
+        displayError("Error detecting cameras: " + err.message);
     }
 }
 
@@ -395,15 +421,7 @@ async function startScan() {
     document.getElementById('scanButton').textContent = '⏹️ Stop Scan';
     
     // Clear previous results and errors
-    const resultElement = document.getElementById('scanResult');
-    if (resultElement) resultElement.textContent = '';
-    
-    const errorDisplay = document.getElementById('errorDisplay');
-    if (errorDisplay) errorDisplay.textContent = '';
-    
-    // Hide scan result container if it exists
-    const scanResultContainer = document.getElementById('scanResultContainer');
-    if (scanResultContainer) scanResultContainer.style.display = 'none';
+    clearResults();
 
     try {
         // Initialize camera selection before scanning
@@ -478,10 +496,7 @@ async function startScan() {
         });
     } catch (err) {
         console.error("Error setting up scanner:", err);
-        if (errorDisplay) {
-            errorDisplay.textContent = "Error setting up scanner: " + err.message;
-            errorDisplay.style.display = 'block';
-        }
+        displayError("Error setting up scanner: " + err.message);
         isScanning = false;
         document.getElementById('scanButton').textContent = '📱 Start Scan';
     }
@@ -874,4 +889,34 @@ function getBarcodeFormatName(formatNumber) {
     };
     
     return formatNames[formatNumber] || `Unknown (${formatNumber})`;
+}
+
+// Add helper function to display errors in the UI
+function displayError(message) {
+    const errorDisplay = document.getElementById('errorDisplay');
+    if (errorDisplay) {
+        errorDisplay.textContent = message;
+        errorDisplay.style.display = 'block';
+        errorDisplay.style.backgroundColor = '#ffeeee';
+        errorDisplay.style.padding = '10px';
+        errorDisplay.style.marginTop = '10px';
+        errorDisplay.style.border = '1px solid #ffcccc';
+        errorDisplay.style.borderRadius = '4px';
+    }
+}
+
+// Add helper function to clear results and errors
+function clearResults() {
+    const resultElement = document.getElementById('scanResult');
+    if (resultElement) resultElement.textContent = '';
+    
+    const errorDisplay = document.getElementById('errorDisplay');
+    if (errorDisplay) {
+        errorDisplay.textContent = '';
+        errorDisplay.style.display = 'none';
+    }
+    
+    // Hide scan result container if it exists
+    const scanResultContainer = document.getElementById('scanResultContainer');
+    if (scanResultContainer) scanResultContainer.style.display = 'none';
 }
