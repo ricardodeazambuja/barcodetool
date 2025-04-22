@@ -310,7 +310,6 @@ async function generateBarcode() {
     if (!text) return; // Stop if content string generation failed
     
     const outputFormat = document.getElementById('outputFormat').value;
-    const scale = parseInt(document.getElementById('scale').value);
     const padding = parseInt(document.getElementById('padding').value);
     const includeText = document.getElementById('includetext').value === 'true';
     
@@ -331,7 +330,6 @@ async function generateBarcode() {
         const options = {
             bcid: format,         // Barcode type
             text: text,           // Text to encode
-            scale: scale,         // Scaling factor
             textxalign: 'center', // Align text
         };
 
