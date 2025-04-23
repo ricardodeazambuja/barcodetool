@@ -7,8 +7,6 @@ let scanHistory = [];
 let resetInProgress = false;
 let selectedDeviceId;
 
-console.log("v1.0");
-
 document.getElementById('barcodeScanner').style.display = 'block';
 document.getElementById('qrCanvas').style.display = 'none';
 

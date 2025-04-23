@@ -1,5 +1,5 @@
 // Cache names
-const CACHE_NAME = 'barcode-tool-cache-v1';
+const CACHE_NAME = 'barcode-tool-cache-v2';
 const ASSETS = [
   '/barcodetool/',
   '/barcodetool/index.html',
@@ -12,60 +12,86 @@ const ASSETS = [
   'https://unpkg.com/@zxing/library@latest'
 ];
 
-// Install event - cache assets
-self.addEventListener('install', event => {
+// Install event: Cache assets and skip waiting
+self.addEventListener('install', (event) => {
+  console.log('Service Worker: Installing...', CACHE_NAME);
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('Opened cache');
-        return cache.addAll(ASSETS);
+      .then((cache) => {
+        console.log('Service Worker: Caching files');
+        return cache.addAll(urlsToCache);
+      })
+      .then(() => {
+        // **Forces the waiting service worker to become the active service worker**
+        console.log('Service Worker: Skipping waiting');
+        return self.skipWaiting();
+      })
+      .catch((error) => {
+        console.error('Service Worker: Cache addAll failed:', error);
       })
   );
 });
 
-// Activate event - clean up old caches
-self.addEventListener('activate', event => {
+// Activate event: Clean up old caches and claim clients
+self.addEventListener('activate', (event) => {
+  console.log('Service Worker: Activating...');
   event.waitUntil(
-    caches.keys().then(cacheNames => {
+    caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.filter(cacheName => {
-          return cacheName !== CACHE_NAME;
-        }).map(cacheName => {
-          return caches.delete(cacheName);
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            // **Delete old caches**
+            console.log('Service Worker: Deleting old cache', cacheName);
+            return caches.delete(cacheName);
+          }
+          return null;
         })
+        .filter(Boolean) // Remove null entries
       );
+    }).then(() => {
+      // **Immediately take control of all clients (tabs/windows)**
+      console.log('Service Worker: Claiming clients');
+      return self.clients.claim();
     })
   );
 });
 
-// Fetch event - serve from cache or network
-self.addEventListener('fetch', event => {
+// Fetch event: Serve from cache or fetch from network
+self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request)
-      .then(response => {
-        // Return cached response if found
+      .then((response) => {
+        // Cache hit - return response
         if (response) {
           return response;
         }
-        return fetch(event.request).then(
-          response => {
-            // Return the response as-is if not a valid response
+
+        // No cache hit - fetch from network
+        return fetch(event.request)
+          .then((response) => {
+            // Check if we received a valid response
             if (!response || response.status !== 200 || response.type !== 'basic') {
               return response;
             }
 
-            // Clone the response
+            // IMPORTANT: Clone the response. A response is a stream
+            // and can only be consumed once. We consume the stream
+            // here to cache the response, and we also need to return
+            // a response to the browser for the fetch request.
             const responseToCache = response.clone();
 
-            // Add response to cache
             caches.open(CACHE_NAME)
-              .then(cache => {
+              .then((cache) => {
                 cache.put(event.request, responseToCache);
               });
 
             return response;
-          }
-        );
+          });
+      })
+      .catch((error) => {
+        console.error('Service Worker: Fetch failed:', error);
+        // You could return a fallback page here
+        // return caches.match('/offline.html');
       })
   );
 });
