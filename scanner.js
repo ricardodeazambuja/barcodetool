@@ -135,16 +135,15 @@ async function handleImageUpload(event) {
         qrCanvas.height = height;
         
         // Clear canvas and draw image
-        canvasContext.fillStyle = '#FFFFFF'; // At least show the user there's a problem with the PNG image
+        canvasContext.fillStyle = '#000000'; // At least show the user there's a problem with the PNG image
         canvasContext.clearRect(0, 0, qrCanvas.width, qrCanvas.height);
         canvasContext.fillRect(0, 0, width, height);
         canvasContext.drawImage(img, 0, 0, width, height);
 
-        const newDataUrl = qrCanvas.toDataURL('image/png');
-        
-        img.src = newDataUrl;
-        
-        await imageLoaded;
+        // This is not working on iOS: ZXing gives the error "The index is not in the allowed range"
+        // const newDataUrl = qrCanvas.toDataURL('image/png');        
+        // img.src = newDataUrl;
+        // await imageLoaded;
         
         // Make the canvas visible
         qrCanvas.style.display = 'block';
