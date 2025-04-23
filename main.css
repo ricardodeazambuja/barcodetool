@@ -135,6 +135,8 @@ canvas, svg {
     border-radius: 5px;
     background-color: #f8f8f8;
     position: relative;
+    justify-content: center;
+    align-items: center;
 }
 #scanResult {
     font-size: 18px;
