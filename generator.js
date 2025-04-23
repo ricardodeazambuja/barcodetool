@@ -331,6 +331,7 @@ async function generateBarcode() {
             bcid: format,         // Barcode type
             text: text,           // Text to encode
             textxalign: 'center', // Align text
+            backgroundcolor: 'FFFFFF'
         };
 
         if (includeText) options.alttext = text;
