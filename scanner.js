@@ -135,15 +135,15 @@ async function handleImageUpload(event) {
         qrCanvas.height = height;
         
         // Clear canvas and draw image
-        canvasContext.fillStyle = '#FFFFFF'; // White color
         canvasContext.clearRect(0, 0, qrCanvas.width, qrCanvas.height);
-        canvasContext.fillRect(0, 0, width, height);
         canvasContext.drawImage(img, 0, 0, width, height);
 
         const jpegDataUrl = qrCanvas.toDataURL('image/jpeg', 0.9); // Using 0.9 quality as an example
 
         // Set the source of the new Image element to the JPEG Data URL
         img.src = jpegDataUrl;
+        
+        await imageLoaded;
         
         // Make the canvas visible
         qrCanvas.style.display = 'block';
