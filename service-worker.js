@@ -1,13 +1,13 @@
 // Cache names
 const CACHE_NAME = 'barcode-tool-cache-v1';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/main.css',
-  '/generator.js',
-  '/scanner.js',
-  '/manifest.json',
-  '/favicon.ico',
+  '/barcodetool/',
+  '/barcodetool/index.html',
+  '/barcodetool/main.css',
+  '/barcodetool/generator.js',
+  '/barcodetool/scanner.js',
+  '/barcodetool/manifest.json',
+  '/public/favicon.ico',
   'https://unpkg.com/bwip-js/dist/bwip-js-min.js',
   'https://unpkg.com/@zxing/library@latest'
 ];
