@@ -1,5 +1,4 @@
 // Global variables for scanner
-let videoStream;
 let isScanning = false;
 let scanningTimeout;
 let codeReader;
@@ -8,16 +7,17 @@ let scanHistory = [];
 let resetInProgress = false;
 let selectedDeviceId;
 
+document.getElementById('barcodeScanner').style.display = 'block';
+document.getElementById('qrCanvas').style.display = 'none';
+
 // Initialize scanner event listeners
 document.addEventListener('DOMContentLoaded', () => {
     const scanButton = document.getElementById('scanButton');
     scanButton.addEventListener('click', () => {
         if (!isScanning) {
-            document.getElementById('barcodeScanner').style.display = 'block';
             startScan();
         } else {
             stopScan();
-            document.getElementById('barcodeScanner').style.display = 'none';
         }
     });
     
@@ -135,12 +135,18 @@ async function handleImageUpload(event) {
         qrCanvas.height = height;
         
         // Clear canvas and draw image
+        canvasContext.fillStyle = '#FFFFFF'; // White color
         canvasContext.clearRect(0, 0, qrCanvas.width, qrCanvas.height);
+        canvasContext.fillRect(0, 0, width, height);
         canvasContext.drawImage(img, 0, 0, width, height);
+
+        const jpegDataUrl = qrCanvas.toDataURL('image/jpeg', 0.9); // Using 0.9 quality as an example
+
+        // Set the source of the new Image element to the JPEG Data URL
+        img.src = jpegDataUrl;
         
         // Make the canvas visible
         qrCanvas.style.display = 'block';
-
 
         // Add this code to show the image regardless of scan result
         const videoElement = document.getElementById('video');
@@ -155,28 +161,27 @@ async function handleImageUpload(event) {
         
         // Reset any existing code reader
         if (codeReader) {
-            codeReader.reset();
+            await codeReader.reset();
         }
         
         // Create a new code reader with the desired hints
         codeReader = new ZXing.BrowserMultiFormatReader(hints);
 
         // Decode the barcode
-        const result = await codeReader.decodeFromImage(undefined, hints);
+        const result = await codeReader.decode(img);
 
         // Handle the successful scan result
-        if (result) {
-            handleZXingCode(result);
-        } else {
-            // This shouldn't happen as an exception would be thrown instead, but just in case
-            throw new Error('No barcode found in image');
-        }
+        handleZXingCode(result);
+        
+        // Clean up the temporary object URL created from the original file
+        URL.revokeObjectURL(img.url);
+
     } catch (error) {
         console.error('Error processing image:', error);
         
         // Check if it's a "not found" error, which is common and expected
         if (error instanceof ZXing.NotFoundException) {
-            displayError('No barcode or QR code found in the image.');
+            displayError('No barcode code found in the image.');
         } else {
             // For other errors
             displayError(`Error processing image: ${error.message}`);
@@ -236,6 +241,7 @@ function initializeCameraSelection() {
         
         // Insert at the beginning of the scanner div
         scannerDiv.insertBefore(cameraSelectPanel, scannerDiv.firstChild);
+        cameraSelectPanel.style.display = 'none';
         console.log("Camera selection panel created and inserted");
         
         // Create a container for scan results that will appear after the video
@@ -339,7 +345,6 @@ async function populateCameraDevices() {
             });
             
             // Show the selection panel regardless of number of cameras
-            cameraSelectPanel.style.display = 'block';
             console.log(`Found ${videoInputDevices.length} cameras, showing selection panel`);
             
             // Add change event listener to update selectedDeviceId
@@ -424,6 +429,7 @@ async function startScan() {
     
     isScanning = true;
     document.getElementById('scanButton').textContent = '⏹️ Stop Scan';
+    cameraSelectPanel.style.display = 'block';
     
     // Clear previous results and errors
     clearResults();
@@ -475,13 +481,9 @@ async function startScan() {
         // Set up callback for decoding
         codeReader.decodeFromVideoDevice(selectedDeviceId, 'video', (result, err) => {
             if (result) {
-                // Get the video stream for later use
-                if (videoElement.srcObject) {
-                    videoStream = videoElement.srcObject;
-                }
-                
                 // Draw the red rectangle around the barcode
                 handleZXingCode(result);
+                stopScan();
             }
             if (err && !(err instanceof ZXing.NotFoundException)) {
                 console.error("Error decoding barcode:", err);
@@ -714,8 +716,6 @@ function handleZXingCode(result) {
     if (scanResultContainer) {
         scanResultContainer.style.display = 'block';
     }
-    
-    stopScan();
 }
 
 // Add CSS styles for detected links
@@ -843,6 +843,7 @@ function stopScan(callback = null) {
     resetInProgress = true;
     isScanning = false;
     document.getElementById('scanButton').textContent = '📱 Start Scan';
+    cameraSelectPanel.style.display = 'none';
     
     clearInterval(drawingInterval);
 
