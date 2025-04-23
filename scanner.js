@@ -140,6 +140,11 @@ async function handleImageUpload(event) {
         
         // Make the canvas visible
         qrCanvas.style.display = 'block';
+
+
+        // Add this code to show the image regardless of scan result
+        const videoElement = document.getElementById('video');
+        if (videoElement) videoElement.style.display = 'none';
         
         // Get selected formats
         const selectedFormats = getSelectedFormats();
