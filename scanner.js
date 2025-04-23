@@ -135,25 +135,25 @@ async function handleImageUpload(event) {
         qrCanvas.height = height;
         
         // Clear canvas and draw image
-        canvasContext.fillStyle = '#FFFFFF'; // White color
+        canvasContext.fillStyle = '#000000'; // At least show the user there's a problem with the PNG image
         canvasContext.clearRect(0, 0, qrCanvas.width, qrCanvas.height);
         canvasContext.fillRect(0, 0, width, height);
         canvasContext.drawImage(img, 0, 0, width, height);
 
-        const jpegDataUrl = qrCanvas.toDataURL('image/jpeg');
+        // const jpegDataUrl = qrCanvas.toDataURL('image/jpeg');
 
         // Set the source of the new Image element to the JPEG Data URL
-        const imgtmp = new Image();
+        // const imgtmp = new Image();
 
         // Create a promise to handle image loading
-        const tmpimageLoaded = new Promise((resolve, reject) => {
-            imgtmp.onload = () => resolve();
-            imgtmp.onerror = () => reject(new Error('Failed to load image'));
-        });
+        // const tmpimageLoaded = new Promise((resolve, reject) => {
+        //     imgtmp.onload = () => resolve();
+        //     imgtmp.onerror = () => reject(new Error('Failed to load image'));
+        // });
         
-        imgtmp.src = jpegDataUrl;
+        // imgtmp.src = jpegDataUrl;
         
-        await tmpimageLoaded;
+        // await tmpimageLoaded;
         
         // Make the canvas visible
         qrCanvas.style.display = 'block';
@@ -178,7 +178,7 @@ async function handleImageUpload(event) {
         codeReader = new ZXing.BrowserMultiFormatReader(hints);
 
         // Decode the barcode
-        const result = await codeReader.decode(imgtmp);
+        const result = await codeReader.decode(img);
 
         // Handle the successful scan result
         handleZXingCode(result);
