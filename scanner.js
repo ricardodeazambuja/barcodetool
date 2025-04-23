@@ -7,6 +7,8 @@ let scanHistory = [];
 let resetInProgress = false;
 let selectedDeviceId;
 
+console.log("v1.0");
+
 document.getElementById('barcodeScanner').style.display = 'block';
 document.getElementById('qrCanvas').style.display = 'none';
 
@@ -461,6 +463,7 @@ async function startScan() {
         
         const videoElement = document.getElementById('video');
         const qrCanvas = document.getElementById('qrCanvas');
+        qrCanvas.style.display = 'block';
         
         // Start continuous drawing of video to canvas
         videoElement.onloadedmetadata = () => {
