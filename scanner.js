@@ -143,9 +143,17 @@ async function handleImageUpload(event) {
         const jpegDataUrl = qrCanvas.toDataURL('image/jpeg');
 
         // Set the source of the new Image element to the JPEG Data URL
-        img.src = jpegDataUrl;
+        const imgtmp = new Image();
+
+        // Create a promise to handle image loading
+        const tmpimageLoaded = new Promise((resolve, reject) => {
+            imgtmp.onload = () => resolve();
+            imgtmp.onerror = () => reject(new Error('Failed to load image'));
+        });
         
-        await imageLoaded;
+        imgtmp.src = jpegDataUrl;
+        
+        await tmpimageLoaded;
         
         // Make the canvas visible
         qrCanvas.style.display = 'block';
@@ -170,7 +178,7 @@ async function handleImageUpload(event) {
         codeReader = new ZXing.BrowserMultiFormatReader(hints);
 
         // Decode the barcode
-        const result = await codeReader.decode(img);
+        const result = await codeReader.decode(imgtmp);
 
         // Handle the successful scan result
         handleZXingCode(result);
