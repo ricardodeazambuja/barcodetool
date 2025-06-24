@@ -19,7 +19,7 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME)
       .then((cache) => {
         console.log('Service Worker: Caching files');
-        return cache.addAll(urlsToCache);
+        return cache.addAll(ASSETS);
       })
       .then(() => {
         // **Forces the waiting service worker to become the active service worker**
