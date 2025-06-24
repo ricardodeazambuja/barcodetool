@@ -243,13 +243,10 @@ function generateContentString() {
             } else if (barcodeType === 'interleaved2of5' && result.length % 2 !== 0) {
                 throw new Error("ITF requires an even number of digits");
             } else if (barcodeType === 'codabar') {
-                // CODABAR validation: must start and end with A, B, C, or D
-                if (!/^[ABCD].*[ABCD]$/i.test(result)) {
-                    throw new Error("CODABAR must start and end with A, B, C, or D");
-                }
-                // CODABAR character set: 0-9, -, $, :, /, ., +, and A-D
+                // Codabar validation: must start and end with A, B, C, or D,
+                // and can only contain digits (0-9) and symbols (-, $, :, /, ., +) in between.
                 if (!/^[ABCD][0-9\-$:\/.+]*[ABCD]$/i.test(result)) {
-                    throw new Error("CODABAR can only contain digits (0-9) and symbols (-, $, :, /, ., +)");
+                    throw new Error("Invalid CODABAR format. It must start and end with A, B, C, or D, and the body can only contain digits (0-9) and the special characters (-, $, :, /, ., +).");
                 }
             }
         }
