@@ -146,6 +146,9 @@ function updateForm() {
             } else if (barcodeType === 'interleaved2of5') {
                 placeholder = 'Enter even number of digits';
                 pattern = '[0-9]*[02468]$'; // Ensures even number of digits
+            } else if (barcodeType === 'codabar') {
+                placeholder = 'Enter text starting and ending with A, B, C, or D (e.g., A12345B)';
+                inputType = 'text'; // Override to text for CODABAR
             }
         }
         
@@ -239,6 +242,15 @@ function generateContentString() {
                 throw new Error("UPC-E requires exactly 6 digits");
             } else if (barcodeType === 'interleaved2of5' && result.length % 2 !== 0) {
                 throw new Error("ITF requires an even number of digits");
+            } else if (barcodeType === 'codabar') {
+                // CODABAR validation: must start and end with A, B, C, or D
+                if (!/^[ABCD].*[ABCD]$/i.test(result)) {
+                    throw new Error("CODABAR must start and end with A, B, C, or D");
+                }
+                // CODABAR character set: 0-9, -, $, :, /, ., +, and A-D
+                if (!/^[ABCD][0-9\-$:\/.+]*[ABCD]$/i.test(result)) {
+                    throw new Error("CODABAR can only contain digits (0-9) and symbols (-, $, :, /, ., +)");
+                }
             }
         }
         if (!result) {
@@ -327,8 +339,13 @@ async function generateBarcode() {
 
     try {
         // Configure options for bwip-js
+        // Map format to correct bwip-js bcid (barcode identifier)
+        const bcidMapping = {
+            'codabar': 'rationalizedCodabar'  // CODABAR uses rationalizedCodabar in bwip-js
+        };
+        
         const options = {
-            bcid: format,         // Barcode type
+            bcid: bcidMapping[format] || format,  // Use mapped bcid or original format
             text: text,           // Text to encode
             textxalign: 'center', // Align text
             backgroundcolor: 'FFFFFF'
