@@ -540,10 +540,21 @@ export class BarcodeScanner {
             // Use existing visual feedback system - draws detection box and handles everything
             this.handleZXingCode(result);
           } else {
-            ErrorHandler.showUserError('No barcode found in the uploaded image.');
+            this.showNoDetectionMessage();
           }
         } catch (err) {
-          throw new Error('Error scanning image: ' + err.message);
+          // Distinguish between "no barcode found" and actual errors
+          const errorMessage = err.message.toLowerCase();
+          
+          if (errorMessage.includes('no multiformat readers') || 
+              errorMessage.includes('not found') ||
+              errorMessage.includes('notfoundexception')) {
+            // This is normal - no barcode detected, not an actual error
+            this.showNoDetectionMessage();
+          } else {
+            // Actual error - rethrow for proper error handling
+            throw new Error('Error scanning image: ' + err.message);
+          }
         }
       };
 
@@ -690,5 +701,43 @@ export class BarcodeScanner {
         imageUploadInput.disabled = false;
       }
     }
+  }
+
+  /**
+   * Show helpful message when no barcode is detected in uploaded image
+   */
+  showNoDetectionMessage() {
+    // Image is already visible on canvas - keep it there
+    // Draw a semi-transparent overlay with helpful message
+    const qrCanvas = document.getElementById('qrCanvas');
+    const canvasContext = qrCanvas.getContext('2d');
+    
+    // Save current canvas state
+    canvasContext.save();
+    
+    // Create semi-transparent overlay
+    canvasContext.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    canvasContext.fillRect(0, 0, qrCanvas.width, qrCanvas.height);
+    
+    // Add helpful text
+    canvasContext.fillStyle = 'white';
+    canvasContext.font = 'bold 20px Arial';
+    canvasContext.textAlign = 'center';
+    canvasContext.textBaseline = 'middle';
+    
+    const centerX = qrCanvas.width / 2;
+    const centerY = qrCanvas.height / 2;
+    
+    canvasContext.fillText('No barcode detected', centerX, centerY - 30);
+    
+    canvasContext.font = '16px Arial';
+    canvasContext.fillText('Try a different image or', centerX, centerY + 10);
+    canvasContext.fillText('check format selection', centerX, centerY + 35);
+    
+    // Restore canvas state
+    canvasContext.restore();
+    
+    // Show user-friendly message
+    ErrorHandler.showUserError('No barcode detected in the uploaded image. The image is shown above with suggestions for next steps.');
   }
 }
