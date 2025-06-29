@@ -231,6 +231,17 @@
         <button id="scanButton">📱 Start Scan</button>
       </div>
 
+      <div class="form-group" id="imageUploadGroup">
+        <label for="imageUpload">📁 Upload Image to Scan:</label>
+        <div class="info-message">
+          Upload a barcode image from your device to scan it.
+        </div>
+        <input type="file" id="imageUpload" accept="image/*" style="display: none;" />
+        <button type="button" id="imageUploadBtn" class="secondary-button">
+          📤 Upload & Scan Image
+        </button>
+      </div>
+
       <div id="scannerMessages" class="action-message-container" style="display: none;"></div>
 
       <div id="barcodeScanner" style="display: none">

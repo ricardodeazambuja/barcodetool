@@ -21,6 +21,7 @@ export class BarcodeScanner {
     document.getElementById('barcodeScanner').style.display = 'block';
     document.getElementById('qrCanvas').style.display = 'none';
     addLinkStyles();
+    this.updateImageUploadState();
   }
 
   /**
@@ -52,6 +53,14 @@ export class BarcodeScanner {
     if (imageUpload) {
       imageUpload.addEventListener('change', (e) => {
         this.handleImageUpload(e);
+      });
+    }
+
+    // Image upload button click
+    const imageUploadBtn = document.getElementById('imageUploadBtn');
+    if (imageUploadBtn) {
+      imageUploadBtn.addEventListener('click', () => {
+        document.getElementById('imageUpload').click();
       });
     }
   }
@@ -127,6 +136,7 @@ export class BarcodeScanner {
       clearResults();
       stateManager.set('scanner.isScanning', true);
       stateManager.set('scanner.resetInProgress', false);
+      this.updateImageUploadState();
       
       // Clear previous successful scan state (for conditional canvas hiding)
       stateManager.set('scanner.lastScanSuccessful', false);
@@ -296,6 +306,7 @@ export class BarcodeScanner {
       try {
         stateManager.set('scanner.resetInProgress', true);
         stateManager.set('scanner.isScanning', false);
+        this.updateImageUploadState();
 
         // Clear any existing UI cleanup timeout
         const existingTimeout = stateManager.get('scanner.scanningTimeout');
@@ -507,35 +518,27 @@ export class BarcodeScanner {
 
       img.onload = async () => {
         try {
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.drawImage(img, 0, 0);
-
-          // Get image data for ZXing
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          // Draw image to MAIN canvas for display (not temporary canvas)
+          const qrCanvas = document.getElementById('qrCanvas');
+          const canvasContext = qrCanvas.getContext('2d');
           
+          // Set canvas size and make it visible
+          qrCanvas.width = img.width;
+          qrCanvas.height = img.height;
+          qrCanvas.style.display = 'block';  // KEY FIX: Make canvas visible!
+          
+          // Draw the uploaded image
+          canvasContext.drawImage(img, 0, 0);
+
           // Create code reader and decode
           const codeReader = new ZXing.BrowserMultiFormatReader();
           const selectedFormats = this.getSelectedFormats();
           
-          const result = await codeReader.decodeFromImageData(imageData, selectedFormats);
+          const result = await codeReader.decodeFromImageElement(img, selectedFormats);
           
           if (result) {
-            const text = result.getText();
-            const format = getBarcodeFormatName(result.getBarcodeFormat());
-            const time = new Date().toLocaleString();
-
-            // Add to scan history
-            this.addToScanHistory(text, format, time);
-
-            // Display result
-            this.displayScanResult(text, format, time);
-
-            // Update save buttons visibility
-            this.updateSaveButtonsVisibility();
-            
-            // Show success message
-            ErrorHandler.showSuccess('Image scanned successfully!');
+            // Use existing visual feedback system - draws detection box and handles everything
+            this.handleZXingCode(result);
           } else {
             ErrorHandler.showUserError('No barcode found in the uploaded image.');
           }
@@ -663,5 +666,29 @@ export class BarcodeScanner {
     stateManager.clearScanHistory();
     this.updateHistoryDisplay();
     this.updateSaveButtonsVisibility();
+  }
+
+  /**
+   * Update image upload button state based on scanner status
+   */
+  updateImageUploadState() {
+    const isScanning = stateManager.get('scanner.isScanning');
+    const imageUploadGroup = document.getElementById('imageUploadGroup');
+    const imageUploadBtn = document.getElementById('imageUploadBtn');
+    const imageUploadInput = document.getElementById('imageUpload');
+    
+    if (imageUploadGroup && imageUploadBtn && imageUploadInput) {
+      if (isScanning) {
+        // Disable when camera is active
+        imageUploadGroup.classList.add('disabled-option');
+        imageUploadBtn.disabled = true;
+        imageUploadInput.disabled = true;
+      } else {
+        // Enable when camera is not active
+        imageUploadGroup.classList.remove('disabled-option');
+        imageUploadBtn.disabled = false;
+        imageUploadInput.disabled = false;
+      }
+    }
   }
 }
