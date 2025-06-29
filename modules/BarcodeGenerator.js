@@ -652,6 +652,7 @@ export class BarcodeGenerator {
       text: text,
       scale: 3,
       includetext: document.getElementById('includetext').value === 'true',
+      padding: parseInt(document.getElementById('padding').value) || 10,
     };
 
     // Add background color if specified (for PNG downloads)
@@ -935,8 +936,24 @@ export class BarcodeGenerator {
       newCtx.imageSmoothingEnabled = true;
       newCtx.imageSmoothingQuality = 'high';
 
-      // Draw scaled content
-      newCtx.drawImage(tempCanvas, 0, 0, originalWidth, originalHeight, 0, 0, minWidth, minHeight);
+      // Draw scaled content while preserving aspect ratio and padding
+      // Calculate scaling to fit within the new canvas size while maintaining aspect ratio
+      const scaleX = minWidth / originalWidth;
+      const scaleY = minHeight / originalHeight;
+      const scale = Math.min(scaleX, scaleY);
+      
+      const scaledWidth = originalWidth * scale;
+      const scaledHeight = originalHeight * scale;
+      
+      // Center the scaled image in the new canvas
+      const offsetX = (minWidth - scaledWidth) / 2;
+      const offsetY = (minHeight - scaledHeight) / 2;
+      
+      // Fill background with white to preserve padding appearance
+      newCtx.fillStyle = 'white';
+      newCtx.fillRect(0, 0, minWidth, minHeight);
+      
+      newCtx.drawImage(tempCanvas, 0, 0, originalWidth, originalHeight, offsetX, offsetY, scaledWidth, scaledHeight);
       
     } catch (error) {
       console.error('Error resizing canvas:', error);
