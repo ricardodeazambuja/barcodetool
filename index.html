@@ -1,296 +1,276 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Barcode Tool - Generator & Scanner</title>
-    <link rel="shortcut icon" href="/barcodetool/favicon.ico">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#007bff">
-    <link rel="apple-touch-icon" href="/barcodetool/icons/icon-192x192.png">
+    <link rel="shortcut icon" href="icons/favicon.png" />
+    <link rel="icon" href="icons/favicon.png" sizes="any">
+    <link rel="apple-touch-icon" href="icons/favicon.png">
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#007bff" />
     <script src="https://unpkg.com/bwip-js/dist/bwip-js-min.js"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
-    <link rel="stylesheet" href="main.css">
-</head>
-<body>
-    <h1>Barcode Tool - Generator & Scanner</h1>   
+    <link rel="stylesheet" href="main.css" />
+  </head>
+  <body>
+    <h1>Barcode Tool - Generator & Scanner</h1>
     <div class="privacy-banner">
-        <p><strong>🔒 Privacy Notice:</strong> All data is processed locally in your browser. Nothing is sent to any server, ensuring your data remains completely private.</p>
+      <p>
+        <strong>🔒 Privacy Notice:</strong> All data is processed locally in your browser. Nothing
+        is sent to any server, ensuring your data remains completely private.
+      </p>
     </div>
-    
+
     <div class="tabs">
-        <button class="tab active" onclick="switchTab('generator')">📦 Generate Barcodes</button>
-        <button class="tab" onclick="switchTab('scanner')">📱 Scan Barcodes</button>
-        <button class="tab" onclick="switchTab('savedData')">💾 Saved Data</button>
+      <button class="tab active" onclick="switchTab('generator')">📦 Generate Barcodes</button>
+      <button class="tab" onclick="switchTab('scanner')">📱 Scan Barcodes</button>
+      <button class="tab" onclick="switchTab('savedData')">💾 Saved Data</button>
     </div>
-    
+
     <!-- Generator Tab -->
     <div id="generator" class="tab-content active">
-        <p>Create various types of 2D barcodes with custom content.</p>
-        
-        <div class="form-group">
-            <label for="barcodeType">📦 Barcode Type:</label>
-            <select id="barcodeType" onchange="updateBarcodeOptionsVisibility()">
-                <option value="qrcode">QR Code</option>
-                <option value="datamatrix">Data Matrix</option>
-                <option value="pdf417">PDF417</option>
-                <option value="azteccode">Aztec Code</option>
-                <option value="ean13">EAN-13</option>
-                <option value="ean8">EAN-8</option>
-                <option value="upca">UPC-A</option>
-                <option value="upce">UPC-E</option>
-                <option value="code39">CODE 39</option>
-                <option value="code128">CODE 128</option>
-                <option value="interleaved2of5">ITF</option>
-                <option value="codabar">CODABAR</option>
-            </select>
-        </div>
+      <p>Create various types of 2D barcodes with custom content.</p>
 
-        <div class="form-group hidden" id="qrOptionsGroup">
-            <label for="eclevel">🧠 QR Error Correction Level:</label>
-            <select id="eclevel">
-                <option value="L">L - Low (~7%)</option>
-                <option value="M">M - Medium (~15%)</option>
-                <option value="Q">Q - Quartile (~25%)</option>
-                <option value="H">H - High (~30%)</option>
-            </select>
-            <div class="info-message">Higher levels recommended when using a logo overlay.</div>
-        </div>
+      <div class="form-group">
+        <label for="barcodeType">📦 Barcode Type:</label>
+        <select id="barcodeType">
+          <option value="qrcode">QR Code</option>
+          <option value="datamatrix">Data Matrix</option>
+          <option value="pdf417">PDF417</option>
+          <option value="azteccode">Aztec Code</option>
+          <option value="ean13">EAN-13</option>
+          <option value="ean8">EAN-8</option>
+          <option value="upca">UPC-A</option>
+          <option value="upce">UPC-E</option>
+          <option value="code39">CODE 39</option>
+          <option value="code128">CODE 128</option>
+          <option value="interleaved2of5">ITF</option>
+          <option value="codabar">CODABAR</option>
+        </select>
+      </div>
 
-        <div class="form-group hidden" id="pdf417OptionsGroup">
-            <label for="securitylevel">🛡️ PDF417 Security Level (0–8):</label>
-            <input type="number" id="securitylevel" value="2" min="0" max="8">
-            <div class="info-message">Higher levels add more error correction codewords. Level 2-5 recommended.</div>
-        </div>
+      <div class="form-group hidden" id="qrOptionsGroup">
+        <label for="eclevel">🧠 QR Error Correction Level:</label>
+        <select id="eclevel">
+          <option value="L">L - Low (~7%)</option>
+          <option value="M">M - Medium (~15%)</option>
+          <option value="Q">Q - Quartile (~25%)</option>
+          <option value="H">H - High (~30%)</option>
+        </select>
+        <div class="info-message">Higher levels recommended when using a logo overlay.</div>
+      </div>
 
-        <div class="form-group hidden" id="oneDOptionsGroup">
-            <label for="oneDOption">1D Barcode Options:</label>
-            <div class="info-message">1D barcodes may have different format requirements depending on the selected type.</div>
-            <ul class="barcode-info">
-                <li><strong>EAN-13:</strong> Exactly 12 digits (13th is calculated)</li>
-                <li><strong>EAN-8:</strong> Exactly 7 digits (8th is calculated)</li>
-                <li><strong>UPC-A:</strong> Exactly 11 digits (12th is calculated)</li>
-                <li><strong>UPC-E:</strong> 6 digits (compressed UPC-A)</li>
-                <li><strong>CODE 39:</strong> Uppercase letters, numbers and symbols</li>
-                <li><strong>CODE 128:</strong> Full ASCII character set</li>
-                <li><strong>ITF:</strong> Even number of digits</li>
-                <li><strong>CODABAR:</strong> Start / end with one uppercase letter (A to D), digits in between</li>
-            </ul>
+      <div class="form-group hidden" id="pdf417OptionsGroup">
+        <label for="securitylevel">🛡️ PDF417 Security Level (0–8):</label>
+        <input type="number" id="securitylevel" value="2" min="0" max="8" />
+        <div class="info-message">
+          Higher levels add more error correction codewords. Level 2-5 recommended.
         </div>
+      </div>
 
-        <div class="form-group">
-            <label for="contentType">📝 Content Type:</label>
-            <select id="contentType" onchange="updateForm()">
-                <option value="text">Plain Text / URL</option>
-                <option value="wifi">WiFi Credentials</option>
-                <option value="vcard">vCard Contact</option>
-                <option value="email">Email Message</option>
-                <option value="geo">Geolocation</option>
-            </select>
+      <div class="form-group hidden" id="oneDOptionsGroup">
+        <label for="oneDOption">1D Barcode Options:</label>
+        <div class="info-message">
+          1D barcodes may have different format requirements depending on the selected type.
         </div>
+        <ul class="barcode-info">
+          <li><strong>EAN-13:</strong> Exactly 12 digits (13th is calculated)</li>
+          <li><strong>EAN-8:</strong> Exactly 7 digits (8th is calculated)</li>
+          <li><strong>UPC-A:</strong> Exactly 11 digits (12th is calculated)</li>
+          <li><strong>UPC-E:</strong> 6 digits (compressed UPC-A)</li>
+          <li><strong>CODE 39:</strong> Uppercase letters, numbers and symbols</li>
+          <li><strong>CODE 128:</strong> Full ASCII character set</li>
+          <li><strong>ITF:</strong> Even number of digits</li>
+          <li>
+            <strong>CODABAR:</strong> Start / end with one uppercase letter (A to D), digits in
+            between
+          </li>
+        </ul>
+      </div>
 
-        <div class="form-group" id="inputContainer"></div>
+      <div class="form-group">
+        <label for="contentType">📝 Content Type:</label>
+        <select id="contentType">
+          <option value="text">Plain Text / URL</option>
+          <option value="wifi">WiFi Credentials</option>
+          <option value="vcard">vCard Contact</option>
+          <option value="email">Email Message</option>
+          <option value="geo">Geolocation</option>
+        </select>
+      </div>
 
-        <div class="form-group hidden" id="logoGroup">
-            <label for="logoUpload">🖼️ Overlay Logo (QR Code only):</label>
-            <div class="file-input-wrapper">
-                <input type="file" id="logoUpload" accept="image/*" onchange="handleLogoUpload(event)">
-                <div class="image-preview-container">
-                    <img id="logoPreview" src="#" alt="Logo Preview" style="display: none;">
-                    <button id="removeLogo" style="display: none;" onclick="removeLogo()">Remove Logo</button>
-                </div>
-            </div>
-            <div class="info-message">Note: Adding a logo may reduce scan reliability. Use with higher error correction.</div>
+      <div class="form-group" id="inputContainer"></div>
+
+      <div class="form-group hidden" id="logoGroup">
+        <label for="logoUpload">🖼️ Overlay Logo (QR Code only):</label>
+        <div class="file-input-wrapper">
+          <input type="file" id="logoUpload" accept="image/*" />
+          <div class="image-preview-container">
+            <img id="logoPreview" src="#" alt="Logo Preview" style="display: none" />
+            <button id="removeLogoBtn" style="display: none">
+              Remove Logo
+            </button>
+          </div>
         </div>
-
-        <div class="form-group">
-            <label for="outputFormat">🖼 Output Format:</label>
-            <select id="outputFormat">
-                <option value="canvas">Canvas (PNG like)</option>
-                <option value="svg">SVG (Vector)</option>
-            </select>
+        <div class="info-message">
+          Note: Adding a logo may reduce scan reliability. Use with higher error correction.
         </div>
+      </div>
 
-        <div class="form-group">
-            <label for="padding">📏 Padding (px):</label>
-            <input type="number" id="padding" value="10" min="0" max="100">
-        </div>
+      <div class="form-group">
+        <label for="outputFormat">🖼 Output Format:</label>
+        <select id="outputFormat">
+          <option value="canvas">Canvas (PNG like)</option>
+          <option value="svg">SVG (Vector)</option>
+        </select>
+      </div>
 
-        <div class="form-group">
-            <label for="includetext">👁️ Show Human-Readable Text:</label>
-            <select id="includetext">
-                <option value="false">No</option>
-                <option value="true">Yes</option>
-            </select>
-            <div class="info-message">Note: Not typically used or visible for QR/DataMatrix/Aztec.</div>
-        </div>
+      <div class="form-group">
+        <label for="padding">📏 Padding (px):</label>
+        <input type="number" id="padding" value="10" min="0" max="100" />
+      </div>
 
-        <div class="form-group">
-            <button onclick="generateBarcode()">🚀 Generate Barcode</button>
-        </div>
+      <div class="form-group">
+        <label for="includetext">👁️ Show Human-Readable Text:</label>
+        <select id="includetext">
+          <option value="false">No</option>
+          <option value="true">Yes</option>
+        </select>
+        <div class="info-message">Note: Not typically used or visible for QR/DataMatrix/Aztec.</div>
+      </div>
 
-        <div id="barcodeOutput">
-            <p>Generated barcode will appear here.</p>
-        </div>
-        <div id="errorMessage" class="error-message"></div>
+      <div class="form-group">
+        <button id="generateBarcodeBtn">🚀 Generate Barcode</button>
+      </div>
+
+      <div id="generatorMessages" class="action-message-container" style="display: none;"></div>
+
+      <div id="barcodeOutput">
+        <p>Generated barcode will appear here.</p>
+        <div id="generatedBarcodeContainer" style="display: none;"></div>
+      </div>
+      <div id="errorMessage" class="error-message"></div>
     </div>
-    
+
     <!-- Scanner Tab -->
     <div id="scanner" class="tab-content">
-        <p>Scan various types of barcodes using your device's camera.</p>
-        
-        <div class="form-group" id="formatSelector">
-            <label>📋 Select Barcode Formats to Scan:</label>
-            <div class="info-message">Selecting fewer formats improves scanning performance and accuracy.</div>
-            
-            <div class="select-all-container">
-                <input type="checkbox" id="selectAllFormats" checked>
-                <label for="selectAllFormats"><strong>Select/Deselect All</strong></label>
-            </div>
-            
-            <div class="format-options" id="formatOptions">
-                <div class="format-option">
-                    <input type="checkbox" id="formatQR" value="qrcode" checked>
-                    <label for="formatQR">QR Code</label>
-                </div>
-                <div class="format-option">
-                    <input type="checkbox" id="formatDataMatrix" value="datamatrix" checked>
-                    <label for="formatDataMatrix">Data Matrix</label>
-                </div>
-                <div class="format-option">
-                    <input type="checkbox" id="formatPDF417" value="pdf417" checked>
-                    <label for="formatPDF417">PDF417</label>
-                </div>
-                <div class="format-option">
-                    <input type="checkbox" id="formatAztec" value="aztec" checked>
-                    <label for="formatAztec">Aztec</label>
-                </div>
-                <div class="format-option">
-                    <input type="checkbox" id="formatUPCA" value="upca" checked>
-                    <label for="formatUPCA">UPC-A</label>
-                </div>
-                <div class="format-option">
-                    <input type="checkbox" id="formatUPCE" value="upce" checked>
-                    <label for="formatUPCE">UPC-E</label>
-                </div>
-                <div class="format-option">
-                    <input type="checkbox" id="formatEAN8" value="ean8" checked>
-                    <label for="formatEAN8">EAN-8</label>
-                </div>
-                <div class="format-option">
-                    <input type="checkbox" id="formatEAN13" value="ean13" checked>
-                    <label for="formatEAN13">EAN-13</label>
-                </div>
-                <div class="format-option">
-                    <input type="checkbox" id="formatCode128" value="code128" checked>
-                    <label for="formatCode128">CODE 128</label>
-                </div>
-                <div class="format-option">
-                    <input type="checkbox" id="formatCode39" value="code39" checked>
-                    <label for="formatCode39">CODE 39</label>
-                </div>
-                <div class="format-option">
-                    <input type="checkbox" id="formatCode93" value="code93" checked>
-                    <label for="formatCode93">CODE 93</label>
-                </div>
-                <div class="format-option">
-                    <input type="checkbox" id="formatCodabar" value="codabar" checked>
-                    <label for="formatCodabar">CODABAR</label>
-                </div>
-            </div>
+      <p>Scan various types of barcodes using your device's camera.</p>
+
+      <div class="form-group" id="formatSelector">
+        <label>📋 Select Barcode Formats to Scan:</label>
+        <div class="info-message">
+          Selecting fewer formats improves scanning performance and accuracy.
         </div>
-        
-        <div class="form-group">
-            <button id="scanButton">📱 Start Scan</button>
+
+        <div class="select-all-container">
+          <input type="checkbox" id="selectAllFormats" checked />
+          <label for="selectAllFormats"><strong>Select/Deselect All</strong></label>
         </div>
-        
-        <div id="barcodeScanner" style="display: none;">
-            <video id="video" playsinline></video>
-            <canvas id="qrCanvas"></canvas>
-            <div id="scanResult"></div>
-            <div id="errorDisplay"></div>
+
+        <div class="format-options" id="formatOptions">
+          <div class="format-option">
+            <input type="checkbox" id="formatQR" value="qrcode" checked />
+            <label for="formatQR">QR Code</label>
+          </div>
+          <div class="format-option">
+            <input type="checkbox" id="formatDataMatrix" value="datamatrix" checked />
+            <label for="formatDataMatrix">Data Matrix</label>
+          </div>
+          <div class="format-option">
+            <input type="checkbox" id="formatPDF417" value="pdf417" checked />
+            <label for="formatPDF417">PDF417</label>
+          </div>
+          <div class="format-option">
+            <input type="checkbox" id="formatAztec" value="aztec" checked />
+            <label for="formatAztec">Aztec</label>
+          </div>
+          <div class="format-option">
+            <input type="checkbox" id="formatUPCA" value="upca" checked />
+            <label for="formatUPCA">UPC-A</label>
+          </div>
+          <div class="format-option">
+            <input type="checkbox" id="formatUPCE" value="upce" checked />
+            <label for="formatUPCE">UPC-E</label>
+          </div>
+          <div class="format-option">
+            <input type="checkbox" id="formatEAN8" value="ean8" checked />
+            <label for="formatEAN8">EAN-8</label>
+          </div>
+          <div class="format-option">
+            <input type="checkbox" id="formatEAN13" value="ean13" checked />
+            <label for="formatEAN13">EAN-13</label>
+          </div>
+          <div class="format-option">
+            <input type="checkbox" id="formatCode128" value="code128" checked />
+            <label for="formatCode128">CODE 128</label>
+          </div>
+          <div class="format-option">
+            <input type="checkbox" id="formatCode39" value="code39" checked />
+            <label for="formatCode39">CODE 39</label>
+          </div>
+          <div class="format-option">
+            <input type="checkbox" id="formatCode93" value="code93" checked />
+            <label for="formatCode93">CODE 93</label>
+          </div>
+          <div class="format-option">
+            <input type="checkbox" id="formatCodabar" value="codabar" checked />
+            <label for="formatCodabar">CODABAR</label>
+          </div>
         </div>
-        
-        <div id="scanHistory" class="form-group">
-            <label>📋 Scan History:</label>
-            <div id="historyList">
-                <p class="info-message">No scans yet. Scan a barcode to start.</p>
-            </div>
+      </div>
+
+      <div class="form-group">
+        <label for="cameraSelect">📷 Camera:</label>
+        <select id="cameraSelect" style="display: none;">
+          <!-- Camera options will be populated dynamically -->
+        </select>
+      </div>
+
+      <div class="form-group">
+        <button id="scanButton">📱 Start Scan</button>
+      </div>
+
+      <div id="scannerMessages" class="action-message-container" style="display: none;"></div>
+
+      <div id="barcodeScanner" style="display: none">
+        <video id="video" playsinline></video>
+        <canvas id="qrCanvas"></canvas>
+        <div id="scanResult"></div>
+        <div id="errorDisplay"></div>
+      </div>
+
+      <div id="scanHistory" class="form-group">
+        <label>📋 Scan History:</label>
+        <div id="historyList">
+          <p class="info-message">No scans yet. Scan a barcode to start.</p>
         </div>
-        
-        <div class="form-group" id="saveButtons" style="display: none;">
-            <button id="saveLatestScan" class="secondary-button">💾 Save Latest Scan</button>
-            <button id="saveAllScans" class="secondary-button">💾 Save All Scans</button>
-        </div>
-    </div>
-    
-    <!-- Saved Data Tab -->
-    <div id="savedData" class="tab-content">
-        <h2>💾 Saved Barcode Data</h2>
-        <p>Access your locally saved barcode scans.</p>
-        
-        <div class="form-group">
-            <button id="clearSavedData" class="danger-button">🗑️ Clear All Saved Data</button>
-        </div>
-        
-        <div id="savedDataList" class="form-group">
-            <div class="info-message">No saved data yet. Save some scanned codes first.</div>
-        </div>
+      </div>
+
+      <div class="form-group" id="saveButtons" style="display: none">
+        <button id="saveLatestScan" class="secondary-button">💾 Save Latest Scan</button>
+        <button id="saveAllScans" class="secondary-button">💾 Save All Scans</button>
+      </div>
+
+      <div id="scannerStorageMessages" class="action-message-container" style="display: none;"></div>
     </div>
 
-    <script src="generator.js"></script>
-    <script src="scanner.js"></script>
-    <script src="storage.js"></script>
-    <script>
-        // Common functions
-        function switchTab(tabId) {
-            // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Show selected tab
-            document.getElementById(tabId).classList.add('active');
-            document.querySelector(`.tab[onclick="switchTab('${tabId}')"]`).classList.add('active');
-            
-            // If switching from scanner tab, stop scanning
-            if (tabId !== 'scanner' && isScanning) {
-                stopScan();
-            }
-            
-            // If switching to saved data tab, refresh saved data display
-            if (tabId === 'savedData') {
-                displaySavedData();
-            }
-        }
-        
-        // Initialize the page
-        document.addEventListener('DOMContentLoaded', () => {
-            updateForm();
-            updateBarcodeOptionsVisibility();
-            
-            // Register service worker for PWA
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/barcodetool/service-worker.js')
-                .then(registration => {
-                    console.log('Service Worker registered with scope:', registration.scope);
-                })
-                .catch(error => {
-                    console.error('Service Worker registration failed:', error);
-                });
-            }
-            
-            // Set up save buttons event listeners
-            document.getElementById('saveLatestScan').addEventListener('click', saveLatestScan);
-            document.getElementById('saveAllScans').addEventListener('click', saveAllScans);
-            document.getElementById('clearSavedData').addEventListener('click', clearSavedData);
-            
-            // Check for existing scans to show/hide save buttons
-            updateSaveButtonsVisibility();
-        });
-    </script>
-</body>
+    <!-- Saved Data Tab -->
+    <div id="savedData" class="tab-content">
+      <h2>💾 Saved Barcode Data</h2>
+      <p>Access your locally saved barcode scans.</p>
+
+      <div class="form-group">
+        <button id="clearSavedData" class="danger-button">🗑️ Clear All Saved Data</button>
+      </div>
+
+      <div id="storageMessages" class="action-message-container" style="display: none;"></div>
+
+      <div id="savedDataList" class="form-group">
+        <div class="info-message">No saved data yet. Save some scanned codes first.</div>
+      </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+  </body>
 </html>
